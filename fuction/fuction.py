@@ -91,11 +91,11 @@ def getfilterwordnumber(bucket_name, obj_key, covid, storage):
 
 def analisi(x):
     vs = analyzer.polarity_scores(x)
-    if vs['compound'] > 0:
+    if vs['compound'] > 0.5:
         return 'positive'
-    if vs['compound'] < 0:
+    if -1 < vs['compound'] <= 0:
         return 'negative'
-    if ['compound'] == 0.5:
+    if -0.5 < vs['compound'] <=0.5:
         return 'neutral'
 
 

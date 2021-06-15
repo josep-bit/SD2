@@ -1,18 +1,9 @@
 import matplotlib.pyplot as plt
-from lithops import Storage
+from lithops import Storage, FunctionExecutor
 import statistics as stats
-from lithops import FunctionExecutor
-
 
 def split(word):
     return str(word).split(',')
-
-
-def createlistfiles():
-    d = []
-    for i in range(1, 796):
-        d.append('data' + str(i) + '.txt')
-    return d
 
 
 def cretelistAtributs(atr, storage):
@@ -64,11 +55,14 @@ def graphic(av):
     plt.show()
 
 
-def graphicanalisi(storage):
-    a = cretelistAtributs('sentimentanalysis', storage)
-    p = a.count('Positive')
-    ng = a.count('Negative')
-    ne = a.count('Neutral')
+def listsentimentanalisi(storage):
+    return cretelistAtributs('sentimentanalysis', storage)
+
+
+def graphicanalisi(lista):
+    p = lista.count('Positive')
+    ng = lista.count('Negative')
+    ne = lista.count('Neutral')
     pp = p * 100 / 975
     png = ng * 100 / 975
     pne = ne * 100 / 975
@@ -86,7 +80,10 @@ def graphicanalisi(storage):
 
 if __name__ == '__main__':
     storage = Storage()
-    av = average(storage)
-    print(av)
-    graphic(av)
-    graphicanalisi(storage)
+    with FunctionExecutor() as exe:
+        exe.call_async(average, ())
+        av = exe.get_result()
+        print(av)
+        exe.call_async(listsentimentanalisi, ())
+        sa = exe.get_result()
+        print(sa)
