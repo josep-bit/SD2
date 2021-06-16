@@ -83,7 +83,7 @@ if __name__ == '__main__':
     with FunctionExecutor() as exe:
         exe.call_async(average, ())
         av = exe.get_result()
-        print(av)
         exe.call_async(listsentimentanalisi, ())
         sa = exe.get_result()
-        print(sa)
+        graphic(av)
+        graphicanalisi(sa)

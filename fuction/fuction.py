@@ -1,5 +1,5 @@
 import logging
-import csv
+import csv, time
 from lithops.storage.cloud_proxy import open
 from functools import reduce
 from lithops import Storage
@@ -29,7 +29,7 @@ def getnumberwords(bucket_name, obj_key, storage):
                 x = map(alpha, w)
                 z = list(x).count('True')
                 listn.append(z)
-        if len(listn)!=0:
+        if len(listn) != 0:
             n = reduce(lambda x, y: x + y, listn)
             listnumber.append(n)
         else:
@@ -53,7 +53,9 @@ def getnumberoflines(bucket_name, obj_key, storage):
 
 
 def exetime(ini, end):
-    return end - ini
+    r = round(end - ini, 2)
+    dic = {'Min': round(r / 60, 2), 'Seg': r}
+    return dic
 
 
 def getnumberofwhitespace(bucket_name, obj_key, storage):
@@ -91,11 +93,11 @@ def getfilterwordnumber(bucket_name, obj_key, covid, storage):
 
 def analisi(x):
     vs = analyzer.polarity_scores(x)
-    if vs['compound'] > 0.5:
+    if vs['compound'] > 0:
         return 'positive'
-    if -1 < vs['compound'] <= 0:
+    if vs['compound'] < 0:
         return 'negative'
-    if -0.5 < vs['compound'] <=0.5:
+    if ['compound'] == 0.5:
         return 'neutral'
 
 
@@ -124,13 +126,13 @@ def sentimalAnalisi(bucket_name, obj_key, storage):
             listsanalisi.append('Neutral')
         correct = 0
         neutral = 0
-        negative =0
+        negative = 0
     return listsanalisi
 
 
-def createdlist():
+def createdlist(n):
     l = []
-    for i in range(1, 976):
+    for i in range(1, n):
         date = 'data' + str(i) + '.txt'
         l.append(date)
     return l
@@ -150,7 +152,43 @@ def fcsv(obj_key, nw, nl, ns, a, covid):
                              'numberofspaces': ns[j], 'sentimentanalysis': a[j]})
             j += 1
 
-        return 'ok'
+    return 'ok'
+
+
+def exetimeforfile(bucket_name, covid, storage):
+    n = 15
+    l_time = []
+    obj_key = createdlist(n)
+
+    while n < 976:
+        ini = time.time()
+        getnumberwords(bucket_name, obj_key, storage)
+        getfilterwordnumber(bucket_name, obj_key, covid, storage)
+        getnumberofwhitespace(bucket_name, obj_key, storage)
+        getnumberoflines(bucket_name, obj_key, storage)
+        sentimalAnalisi(bucket_name, obj_key, storage)
+        end = time.time()
+        l_time.append(exetime(ini, end))
+        n = n + 15
+        obj_key = createdlist(n)
+
+    return l_time
+
+
+def timecsv(l_times):
+    r_times = 'times.csv'
+    with open(r_times, 'w') as f:
+        fieldnames = ['numberoffile', 'Minutes', 'Seconds']
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        j = 0
+        i = 15
+        n = len(l_times)
+        while j < n:
+            writer.writerow({'numberoffile':i , 'Minutes':l_times[j].get('Min'), 'Seconds':l_times[j].get('Seg')})
+            j += 1
+            i +=15
+    return 'ok'
 
 
 def split(word):
@@ -160,17 +198,32 @@ def split(word):
 if __name__ == "__main__":
     storage = Storage()
     bucket_name = 'carbigdata2'
-    obj_key = createdlist()
-    with FunctionExecutor() as exe:
-        exe.call_async(getfilterwordnumber, (bucket_name, obj_key, 'Covid-19'))
-        covid = exe.get_result()
-        exe.call_async(getnumberwords, (bucket_name, obj_key))
-        nw = exe.get_result()
-        exe.call_async(getnumberoflines, (bucket_name, obj_key))
-        nl = exe.get_result()
-        exe.call_async(getnumberofwhitespace, (bucket_name, obj_key))
-        ns = exe.get_result()
-        exe.call_async(sentimalAnalisi, (bucket_name, obj_key))
-        a = exe.get_result()
-        exe.call_async(fcsv, (obj_key, nw, nl, ns, a, covid))
-        print(exe.get_result())
+    print("Choose the option:")
+    print("1-time for files")
+    print("2-Complete analysis")
+    choose = input()
+    if choose =='1':
+        with FunctionExecutor() as exe:
+            exe.call_async(exetimeforfile, (bucket_name,'covid'))
+            result = exe.get_result()
+            exe.call_async(timecsv, result)
+            print(exe.get_result())
+    if choose == '2':
+        obj_key = createdlist(976)
+        with FunctionExecutor() as exe:
+            ini = time.time()
+            exe.call_async(getfilterwordnumber, (bucket_name, obj_key, 'Covid-19'))
+            covid = exe.get_result()
+            exe.call_async(getnumberwords, (bucket_name, obj_key))
+            nw = exe.get_result()
+            exe.call_async(getnumberoflines, (bucket_name, obj_key))
+            nl = exe.get_result()
+            exe.call_async(getnumberofwhitespace, (bucket_name, obj_key))
+            ns = exe.get_result()
+            exe.call_async(sentimalAnalisi, (bucket_name, obj_key))
+            a = exe.get_result()
+            fi = time.time()
+            exe.call_async(exetime, (ini, fi))
+            print(exe.get_result())
+            exe.call_async(fcsv, (obj_key, nw, nl, ns, a, covid))
+            print(exe.get_result())

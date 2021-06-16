@@ -4,7 +4,6 @@ from bs4 import BeautifulSoup
 from lithops.storage.cloud_proxy import open
 from lithops import FunctionExecutor
 from lithops.utils import setup_lithops_logger
-import goslate
 
 setup_lithops_logger(logging.DEBUG)
 import re
@@ -47,10 +46,9 @@ def infototext(url):
 
 
 def getfile(t, file):
-    gs = goslate.Goslate()
     with open(file, 'w') as f:
         for i in t:
-            f.write(gs.translate(i, 'en') + '\n')
+            f.write(i + '\n')
 
 
 def separate(tag):
@@ -75,3 +73,6 @@ if __name__ == '__main__':
         r = exe.get_result()
         exe.call_async(save, r)
         print(exe.get_result())
+
+
+
